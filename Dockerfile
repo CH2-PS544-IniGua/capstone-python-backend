@@ -10,7 +10,7 @@ WORKDIR /code
 
 # Install system dependencies
 RUN apt-get update \
-  && apt-get -y install netcat gcc \
+  && apt-get -y install netcat-openbsd gcc \
   && apt-get clean
 
 # Install Python dependencies
