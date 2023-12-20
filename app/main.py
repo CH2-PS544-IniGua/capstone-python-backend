@@ -12,7 +12,8 @@ app.include_router(user_router)
 app.include_router(fashion_router)
 
 # Get the port number from the environment variable or default to 8000
-port = int(os.environ.get("PORT", 8000))
+port = int(os.environ.get("PORT", 8080))
+print(f"Running on port: {port}")
 
 # For running with `uvicorn` directly
 if __name__ == "__main__":
