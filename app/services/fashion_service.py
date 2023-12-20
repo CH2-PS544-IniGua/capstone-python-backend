@@ -40,3 +40,4 @@ class FashionService:
         }
         # Add the history record to Firestore
         history_ref.add(history_data)
+        return history_data
