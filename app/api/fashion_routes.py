@@ -1,9 +1,6 @@
 from fastapi import APIRouter, File, Form, UploadFile, Depends
 from app.services.fashion_service import FashionService
 from app.models.fashion_model import FashionItem
-import json
-import base64
-import os
 
 router = APIRouter()
 
@@ -14,4 +11,5 @@ async def upload_fashion(username: str = Form(...), picture: UploadFile = File(.
     original_filename = picture.filename
     fashion_item = FashionItem(username=username, picture=content, filename=original_filename)
     fashion_item_url = await service.upload_to_bucket(fashion_item)
+    await service.add_to_firestore(username, fashion_item.get_filename(), fashion_item_url)
     return {"filename": fashion_item_url}
