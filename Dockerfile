@@ -22,4 +22,4 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY . /code/
 
 # Command to run the application
-CMD ["python", "-m", "app.main"]
+CMD ["uvicorn", "app.main:app", "--workers", "1", "--timeout-keep-alive", "0", "--host", "0.0.0.0", "--port", "8080"]
