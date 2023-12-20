@@ -6,9 +6,9 @@ class FashionItem(BaseModel):
     filename: str
     picture: bytes  # This will be the content of the picture file
 
-    def filename(self):
+    def get_filename(self):
         time_uploaded = datetime.now().strftime("%Y%m%d%H%M%S")
         return f"{self.filename}-{time_uploaded}"
     
-    def file_username(self):
+    def get_username(self):
         return f"{self.username}"

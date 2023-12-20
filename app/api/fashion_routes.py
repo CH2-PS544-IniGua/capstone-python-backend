@@ -13,5 +13,5 @@ async def upload_fashion(username: str = Form(...), picture: UploadFile = File(.
     content = await picture.read()
     original_filename = picture.filename
     fashion_item = FashionItem(username=username, picture=content, filename=original_filename)
-    await service.upload_to_bucket(fashion_item)
-    return {"filename": fashion_item.filename()}
+    fashion_item_url = await service.upload_to_bucket(fashion_item)
+    return {"filename": fashion_item_url}

@@ -4,3 +4,4 @@ pydantic==1.8.2
 pydantic[email]
 google-cloud-storage
 python-dotenv
+google-auth
