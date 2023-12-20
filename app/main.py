@@ -2,6 +2,9 @@ import os
 from fastapi import FastAPI
 from app.api.user_routes import router as user_router
 from app.api.fashion_routes import router as fashion_router
+from dotenv import load_dotenv
+
+load_dotenv()
 
 app = FastAPI()
 
@@ -14,4 +17,4 @@ port = int(os.environ.get("PORT", 8000))
 # For running with `uvicorn` directly
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=port)
+    uvicorn.run(app, port=port)
