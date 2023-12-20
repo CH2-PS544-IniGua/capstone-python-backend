@@ -4,6 +4,7 @@ import json
 from datetime import datetime
 from google.cloud import storage, firestore
 from google.oauth2 import service_account
+from numpy import random
 from app.models.fashion_model import FashionItem
 from dotenv import load_dotenv
 
@@ -32,11 +33,11 @@ class FashionService:
             'filename': filename,
             'predict_image': imgurl,
             'datetime': datetime.now().isoformat(),  # Store the current time in ISO format
-            'color_bottom': 'Green',
-            'color_skin': 'Brown',
-            'color_top': 'Pink',
-            'percentage_clothes_pants': 37,
-            'percentage_skin_clothes': 69
+            'color_bottom': random.choice(['Black','Blue','Brown','Gray', 'Green','Orange','Pink','Purple','Red','White','Yellow','Cream']),
+            'color_skin': random.choice(["Brown", "White", "Black"]),
+            'color_top': random.choice(['Black','Blue','Brown','Gray', 'Green','Orange','Pink','Purple','Red','White','Yellow','Cream']),
+            'percentage_clothes_pants': random.randint(0, 100),
+            'percentage_skin_clothes': random.randint(0, 100),
         }
         # Add the history record to Firestore
         history_ref.add(history_data)
