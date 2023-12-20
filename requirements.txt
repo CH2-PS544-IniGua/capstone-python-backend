@@ -7,3 +7,4 @@ google-cloud-firestore
 python-dotenv
 google-auth
 python-multipart==0.0.6
+numpy
