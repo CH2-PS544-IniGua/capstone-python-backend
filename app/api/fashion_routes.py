@@ -44,6 +44,7 @@ async def upload_fashion(username: str = Form(...), picture: UploadFile = File(.
     processed_image_result = process_image(img, original_filename)
     processed_image_info = processed_image_result[0]  # Assuming this is the format you're returning
     segmented_image = processed_image_info.get('segmented_image')
+    print(processed_image_result)
     
     # Convert the processed image to the correct format for upload
     _, encoded_image = cv2.imencode('.jpg', segmented_image)
@@ -64,13 +65,9 @@ async def upload_fashion(username: str = Form(...), picture: UploadFile = File(.
     
     return history_result
 
-def detect_function(source, weights, name, img_size=640, conf_thres=0.25, iou_thres=0.45, device='', view_img=False,
+def detect_function(img_array, weights, name, img_size=640, conf_thres=0.25, iou_thres=0.45, device='', view_img=False,
                     save_txt=False, save_conf=False, nosave=False, classes=None, agnostic_nms=False,
                     augment=False, update=False, project='runs/detect', exist_ok=False, no_trace=False):
-
-    # Directly use the parameters rather than parsing them with argparse
-    save_img = not nosave   # save inference images
-    webcam = False
 
     # Initialize
     set_logging()
@@ -88,20 +85,24 @@ def detect_function(source, weights, name, img_size=640, conf_thres=0.25, iou_th
     if half:
         model.half()  # to FP16
 
-    # Second-stage classifier
-    classify = False
-    if classify:
-        modelc = load_classifier(name='resnet101', n=2)  # initialize
-        modelc.load_state_dict(torch.load('weights/resnet101.pt', map_location=device)['model']).to(device).eval()
+    # Make sure the image array has 3 channels (RGB)
+    if img_array.ndim == 2 or (img_array.ndim == 3 and img_array.shape[-1] != 3):
+        # If it's a grayscale image (2D array), stack it three times to create 3 channels
+        img_array = np.stack((img_array,) * 3, axis=-1)
 
-    # Set Dataloader
-    vid_path, vid_writer = None, None
-    if webcam:
-        view_img = check_imshow()
-        cudnn.benchmark = True  # set True to speed up constant image size inference
-        dataset = LoadStreams(source, img_size=imgsz, stride=stride)
-    else:
-        dataset = LoadImages(source, img_size=imgsz, stride=stride)
+    # Convert the image array to a torch tensor
+    img = torch.from_numpy(img_array).to(device)
+
+    # If the image array was in HWC format, convert it to CHW format expected by PyTorch
+    if img.ndim == 3 and img.shape[-1] == 3:
+        img = img.permute(2, 0, 1)  # Convert HWC to CHW
+
+    # Normalize and add batch dimension
+    img = img.float() / 255.0  # normalize to 0 - 1 range
+    img = img.unsqueeze(0)  # add batch dimension
+
+    # Resize image to the input size expected by the model
+    img = torch.nn.functional.interpolate(img, size=(img_size, img_size), mode='bilinear', align_corners=False)
 
     # Get names and colors
     names = model.module.names if hasattr(model, 'module') else model.names
@@ -109,95 +110,54 @@ def detect_function(source, weights, name, img_size=640, conf_thres=0.25, iou_th
 
     # Run inference
     if device.type != 'cpu':
-        model(torch.zeros(1, 3, imgsz, imgsz).to(device).type_as(next(model.parameters())))  # run once
-    old_img_w = old_img_h = imgsz
-    old_img_b = 1
+        model(torch.zeros(1, 3, img_size, img_size).to(device).type_as(next(model.parameters())))  # run once
 
     t0 = time.time()
     
-    for path, img, im0s, vid_cap in dataset:
-        img = torch.from_numpy(img).to(device)
-        img = img.half() if half else img.float()  # uint8 to fp16/32
-        img /= 255.0  # 0 - 255 to 0.0 - 1.0
-        if img.ndimension() == 3:
-            img = img.unsqueeze(0)
+    # Inference
+    t1 = time_synchronized()
+    with torch.no_grad():   # Calculating gradients would cause a GPU memory leak
+        pred = model(img, augment=augment)[0]
+    t2 = time_synchronized()
 
-        # Warmup
-        if device.type != 'cpu' and (old_img_b != img.shape[0] or old_img_h != img.shape[2] or old_img_w != img.shape[3]):
-            old_img_b = img.shape[0]
-            old_img_h = img.shape[2]
-            old_img_w = img.shape[3]
-            for i in range(3):
-                model(img, augment=opt.augment)[0]
+    # Apply NMS
+    pred = non_max_suppression(pred, conf_thres, iou_thres, classes=classes, agnostic=agnostic_nms)
+    t3 = time_synchronized()
 
-        # Inference
-        t1 = time_synchronized()
-        with torch.no_grad():   # Calculating gradients would cause a GPU memory leak
-            pred = model(img, augment=opt.augment)[0]
-        t2 = time_synchronized()
+    # Initialize result dictionary
+    result = {
+        "path": name,
+        "prediction":[],
+        "img": None  # This will be the image with drawn boxes
+    }
 
-        # Apply NMS
-        pred = non_max_suppression(pred, opt.conf_thres, opt.iou_thres, classes=opt.classes, agnostic=opt.agnostic_nms)
-        t3 = time_synchronized()
+    # Process detections
+    for det in pred:  # detections for image
+        im0 = img_array.copy()  # copy of original image
+        if len(det):
+            # Rescale boxes from img_size to im0 size
+            det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
 
-        # Apply Classifier
-        if classify:
-            pred = apply_classifier(pred, modelc, img, im0s)
-        
-        # Process detections
-        for i, det in enumerate(pred):  # detections per image
-            if webcam:  # batch_size >= 1
-                p, s, im0, frame = path[i], '%g: ' % i, im0s[i].copy(), dataset.count
-            else:
-                p, s, im0, frame = path, '', im0s, getattr(dataset, 'frame', 0)
+            # Write results
+            for *xyxy, conf, cls in reversed(det):
+                # if save_img or view_img:  # Add bbox to image
+                #     label = f'{names[int(cls)]} {conf:.2f}'
+                #     plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=3)
+                prediction_info = {
+                        "class": int(cls),
+                        "label": names[int(cls)],
+                        "confidence": float(conf),
+                        "bounding_box": [float(coord) for coord in xyxy],
+                    }
+                result["prediction"].append(prediction_info)
+        result["img"] = im0  # Assign modified image to result dict
 
-            p = Path(p)  # to Path
-            gn = torch.tensor(im0.shape)[[1, 0, 1, 0]]  # normalization gain whwh
-            if len(det):
-                result = {
-                # "directory": str(save_dir),
-                "path": str(source),
-                "prediction":[],
-                
-                }
-                # Rescale boxes from img_size to im0 size
-                det[:, :4] = scale_coords(img.shape[2:], det[:, :4], im0.shape).round()
-
-                # Print results
-                for c in det[:, -1].unique():
-                    n = (det[:, -1] == c).sum()  # detections per class
-                    s += f"{n} {names[int(c)]}{'s' * (n > 1)}, "  # add to string
-
-                # Write results
-              
-                for *xyxy, conf, cls in reversed(det):
-
-                    if save_img or view_img:  # Add bbox to image
-                        label = f'{names[int(cls)]} {conf:.2f}'
-                        plot_one_box(xyxy, im0, label=label, color=colors[int(cls)], line_thickness=1)
-                    prediction_info = {
-                            "class": int(cls),
-                            "label": names[int(cls)],
-                            "confidence": float(conf),
-                            "bounding_box": [float(coord) for coord in xyxy],
-                            # "img": im0
-                        }
-                    result["img"] = im0
-                    result["prediction"].append(prediction_info)
-
-            # Print time (inference + NMS)
-            print(f'{s}Done. ({(1E3 * (t2 - t1)):.1f}ms) Inference, ({(1E3 * (t3 - t2)):.1f}ms) NMS')
-
-            # Stream results
-            if view_img:
-                cv2.imshow(str(p), im0)
-                cv2.waitKey(1)  # 1 millisecond
-
+    # Print time (inference + NMS)
     print(f'Done. ({time.time() - t0:.3f}s)')
     return result
 
 def detect(image_path, image_name):
-    result = detect_function(image_path,'./app/api/best.pt', image_name)
+    result = detect_function(image_path,'./best.pt', image_name)
     return result
 
 def predict_and_display(image, model):
@@ -255,7 +215,7 @@ def process_image(image_array, image_name='image'):
         cropped_by_label = {}
         cropped_by_label[label] = cropped_roi
         cropped_image.append(cropped_by_label)
-        color_model = load_model('./color_classification_cnn_model.h5')
+        color_model = load_model('./app/api/color_classification_cnn_model.h5')
         categories = predict_and_display(image, color_model)
 
         convert_putih = ["Pink","Cream","Gray","Red","Yellow"]

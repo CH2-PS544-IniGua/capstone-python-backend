@@ -6,6 +6,13 @@ import torch.nn as nn
 from app.api.models.common import Conv, DWConv
 from app.api.utils.google_utils import attempt_download
 
+import sys
+from pathlib import Path
+
+# Get the root directory of your project (e.g., 'CAPSTONE-PYTHON-BACKEND')
+ROOT_DIR = Path(__file__).resolve().parents[1]
+sys.path.append(str(ROOT_DIR))
+
 
 class CrossConv(nn.Module):
     # Cross Convolution Downsample
@@ -247,9 +254,9 @@ class End2End(nn.Module):
 def attempt_load(weights, map_location=None):
     # Loads an ensemble of models weights=[a,b,c] or a single model weights=[a] or weights=a
     model = Ensemble()
+
     for w in weights if isinstance(weights, list) else [weights]:
         attempt_download(w)
-        print(w)
         ckpt = torch.load(w, map_location=map_location)  # load
         model.append(ckpt['ema' if ckpt.get('ema') else 'model'].float().fuse().eval())  # FP32 model
     
