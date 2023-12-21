@@ -27,3 +27,4 @@ tensorflow-intel
 tensorflow-io-gcs-filesystem==0.31.0
 tqdm==4.66.1
 opencv-python
+pyyaml
