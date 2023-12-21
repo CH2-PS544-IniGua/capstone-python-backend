@@ -58,7 +58,6 @@ async def upload_fashion(username: str = Form(...), picture: UploadFile = File(.
         fashion_item_url = await service.upload_to_bucket(fashion_item)
 
         # UNTUK FIRESTORE
-        print(processed_image_info)
         labels = processed_image_info.get(original_filename)
         skin = labels.get('skin')
         body1 = labels.get('body1')
