@@ -11,6 +11,7 @@ WORKDIR /code
 # Install system dependencies
 RUN apt-get update \
   && apt-get -y install netcat-openbsd gcc libgl1-mesa-glx libglib2.0-0 \
+     ffmpeg libsm6 libxext6 libxrender-dev libgtk2.0-dev libpng-dev libjpeg-dev \
   && apt-get clean \
   && rm -rf /var/lib/apt/lists/*
 
