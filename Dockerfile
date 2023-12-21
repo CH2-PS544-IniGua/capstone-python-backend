@@ -10,8 +10,9 @@ WORKDIR /code
 
 # Install system dependencies
 RUN apt-get update \
-  && apt-get -y install netcat-openbsd gcc \
-  && apt-get clean
+  && apt-get -y install netcat-openbsd gcc libgl1-mesa-glx \
+  && apt-get clean \
+  && rm -rf /var/lib/apt/lists/*
 
 # Install Python dependencies
 COPY requirements.txt /code/
