@@ -1,0 +1,44 @@
+{
+  "Brown": {
+    "Black": 100,
+    "Brown": 72,
+    "Purple": 77,
+    "Blue": 87,
+    "Red": 57,
+    "Green": 53,
+    "Pink": 57,
+    "Gray": 55,
+    "White": 66,
+    "Cream": 55,
+    "Orange": 59,
+    "Yellow": 50
+  },
+  "Black": {
+    "Blue": 77,
+    "Purple": 70,
+    "Black": 100,
+    "Red": 70,
+    "Gray": 70,
+    "Green": 62,
+    "White": 93,
+    "Cream": 54,
+    "Brown": 62,
+    "Orange": 50,
+    "Pink": 62,
+    "Yellow": 54
+  },
+  "White": {
+    "Yellow": 67,
+    "Black": 100,
+    "White": 67,
+    "Brown": 67,
+    "Blue": 100,
+    "Green": 50,
+    "Gray": 50,
+    "Pink": 67,
+    "Purple": 67,
+    "Orange": 84,
+    "Red": 50,
+    "Cream": 50
+  }
+}

@@ -1,15 +1,11 @@
 from fastapi import APIRouter, File, Form, UploadFile, Depends
 from app.services.fashion_service import FashionService
 from app.models.fashion_model import FashionItem
-import subprocess
 import cv2
-import json
-import os
 import numpy as np
 from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing import image
 
-import argparse
 import time
 from pathlib import Path
 
@@ -34,6 +30,16 @@ async def upload_fashion(username: str = Form(...), picture: UploadFile = File(.
                          service: FashionService = Depends(FashionService)):
     content = await picture.read()  # Read file as bytes
     original_filename = picture.filename
+
+    fp_skin_body= 'app/api/percentage_skin_body.json'
+    fp_body1_body2 = 'app/api/percentage_body1_body2.json'
+
+    # Open the file and load its contents into a dictionary
+    with open(fp_skin_body, 'r') as file:
+        data_skin_body = json.load(file)
+
+    with open(fp_body1_body2, 'r') as file:
+        data_body1_body2 = json.load(file)
     
     # Convert bytes to an image array
     nparr = np.fromstring(content, np.uint8)
@@ -44,8 +50,19 @@ async def upload_fashion(username: str = Form(...), picture: UploadFile = File(.
     processed_image_result = process_image(img, original_filename)
     processed_image_info = processed_image_result[0]  # Assuming this is the format you're returning
     segmented_image = processed_image_info.get('segmented_image')
-    print(processed_image_result)
+
+    print(processed_image_info)
     
+    labels = processed_image_info.get(original_filename)
+    skin = labels.get('skin')
+    body1 = labels.get('body1')
+    body2 = labels.get('body2')
+
+    # handle gaada
+    skin = 'Brown' if not skin else skin
+    body1 = 'Black' if not body1 else body1
+    body2 = 'Black' if not body2 else body2
+
     # Convert the processed image to the correct format for upload
     _, encoded_image = cv2.imencode('.jpg', segmented_image)
     byte_content = encoded_image.tobytes()
@@ -60,7 +77,12 @@ async def upload_fashion(username: str = Form(...), picture: UploadFile = File(.
     history_result = await service.add_to_firestore(
         username, 
         fashion_item.get_filename(), 
-        fashion_item_url
+        fashion_item_url,
+        skin,
+        body1,
+        body2,
+        data_skin_body[skin][body1],
+        data_body1_body2[body1][body2],
     )
     
     return history_result

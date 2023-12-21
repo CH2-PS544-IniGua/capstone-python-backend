@@ -26,18 +26,18 @@ class FashionService:
         blob.make_public()  # Make the blob publicly viewable
         return blob.public_url
 
-    async def add_to_firestore(self, username, filename, imgurl):
+    async def add_to_firestore(self, username, filename, imgurl, skin, body1, body2, psc, pcp):
         # Create a reference to the Firestore collection
         history_ref = self.firestore_client.collection('history').document(username).collection('history')
         history_data = {
             'filename': filename,
             'predict_image': imgurl,
             'datetime': datetime.now().isoformat(),  # Store the current time in ISO format
-            'color_bottom': random.choice(['Black','Blue','Brown','Gray', 'Green','Orange','Pink','Purple','Red','White','Yellow','Cream']),
-            'color_skin': random.choice(["Brown", "White", "Black"]),
-            'color_top': random.choice(['Black','Blue','Brown','Gray', 'Green','Orange','Pink','Purple','Red','White','Yellow','Cream']),
-            'percentage_clothes_pants': random.randint(0, 100),
-            'percentage_skin_clothes': random.randint(0, 100),
+            'color_bottom': body2,
+            'color_skin': skin,
+            'color_top': body1,
+            'percentage_clothes_pants': pcp,
+            'percentage_skin_clothes': psc,
         }
         # Add the history record to Firestore
         history_ref.add(history_data)
