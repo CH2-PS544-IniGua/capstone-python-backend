@@ -65,9 +65,9 @@ async def upload_fashion(username: str = Form(...), picture: UploadFile = File(.
         body2 = labels.get('body2')
 
         # handle gaada
-        skin = 'Brown' if not skin else skin
-        body1 = 'Black' if not body1 else body1
-        body2 = 'Black' if not body2 else body2
+        skin = 'None' if not skin else skin
+        body1 = 'None' if not body1 else body1
+        body2 = 'None' if not body2 else body2
 
         fp_skin_body= 'app/api/percentage_skin_body.json'
         fp_body1_body2 = 'app/api/percentage_body1_body2.json'
@@ -87,8 +87,8 @@ async def upload_fashion(username: str = Form(...), picture: UploadFile = File(.
             skin,
             body1,
             body2,
-            data_skin_body[skin][body1],
-            data_body1_body2[body1][body2],
+            0 if body1 == "None" or skin == "None" else data_skin_body[skin][body1],
+            0 if body1 == "None" or body2 == "None" else data_body1_body2[body1][body2],
         )
     finally:
         # No matter what happens, make sure to clean up the temp file
