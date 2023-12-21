@@ -281,18 +281,8 @@ def preprocess_image(image_array, target_size=(32,32)):
 
 def process_image(image_path, image_name="image-name"):
     segmentation_result = detect(image_path, image_name)
-    # print(segmentation_result)
-    # json_path = f'./runs/detect/{image_name}/result.json'
-
-    # with open(json_path, 'r') as json_file:
-    #     data = json.load(json_file)
 
     image_segmented_path = segmentation_result['path']
-    # Testing to see segmentation img
-    # The segmentation image is in segmentation_result["img"]
-    # os.makedirs(f'./result', exist_ok=True)
-    # save_path = f'./result/result.jpg'
-    # cv2.imwrite(save_path, segmentation_result["img"])
 
 
     image = cv2.imread(image_path)
@@ -331,9 +321,10 @@ def process_image(image_path, image_name="image-name"):
         # Save the cropped ROI to a file
         cropped_by_label = {}
         cropped_by_label[label] = cropped_roi
+        rgb_image = cv2.cvtColor(cropped_roi, cv2.COLOR_BGR2RGB)
         cropped_image.append(cropped_by_label)
         color_model = load_model('./app/api/color_classification_cnn_model.h5')
-        categories = predict_and_display(image, color_model)
+        categories = predict_and_display(rgb_image, color_model)
 
         convert_putih = ["Pink","Cream","Gray","Red","Yellow"]
         convert_brown = ["Purple","Orange","Green","Blue"]
